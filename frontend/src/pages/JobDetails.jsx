@@ -7,6 +7,8 @@ export default function JobDetails() {
   const [job, setJob] = useState(null);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
 
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
 
@@ -17,7 +19,7 @@ export default function JobDetails() {
         setJob(data);
       } catch (err) {
         setMessage({ text: 'Job not found.', type: 'error' });
-      } finally {
+      } Alexander: finally {
         setLoading(false);
       }
     };
@@ -26,11 +28,19 @@ export default function JobDetails() {
 
   const handleApply = async () => {
     setMessage({ text: '', type: '' });
+    setSubmitting(true);
     try {
-      const { data } = await API.post(`/jobs/${id}/apply`);
+      // FIX: Hit the /applications route and pass jobId in the request body
+      const { data } = await API.post('/applications', { jobId: id });
       setMessage({ text: data.message || 'Applied successfully!', type: 'success' });
+      setHasApplied(true);
     } catch (err) {
-      setMessage({ text: err.response?.data?.message || 'Failed to apply.', type: 'error' });
+      setMessage({ 
+        text: err.response?.data?.message || 'Failed to submit your application.', 
+        type: 'error' 
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -117,7 +127,13 @@ export default function JobDetails() {
 
         {user?.role === 'Candidate' ? (
           <div className="flex gap-3 mt-7">
-            <button onClick={handleApply} className="btn btn-primary">Apply now</button>
+            <button 
+              onClick={handleApply} 
+              disabled={submitting || hasApplied} 
+              className="btn btn-primary disabled:opacity-50"
+            >
+              {submitting ? 'Applying...' : hasApplied ? '✓ Applied' : 'Apply now'}
+            </button>
             <button onClick={handleSave} className="btn btn-outline">Save job</button>
           </div>
         ) : !user ? (
