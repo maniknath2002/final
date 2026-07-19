@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const cron = require('node-cron');
+const path = require('path'); // Added for handling directory paths
+const fs = require('fs');     // Added to ensure the uploads folder exists
 
 // Load our configuration settings
 dotenv.config();
@@ -10,16 +12,25 @@ const { runJobScraper } = require('./utils/scraper');
 
 const app = express();
 
+// Basic safety settings so our frontend can talk to our backend
+app.use(cors());
+app.use(express.json());
+
+// Ensure 'uploads' directory exists safely on the hosting server
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Serve the uploads folder statically so PDFs are accessible
+app.use('/uploads', express.static(uploadsDir));
+
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const scraperRoutes = require('./routes/scraperRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
-
-// Basic safety settings so our frontend can talk to our backend
-app.use(cors());
-app.use(express.json());
 
 // Mount Routes cleanly
 app.use('/api/auth', authRoutes);
