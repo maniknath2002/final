@@ -34,7 +34,7 @@ export default function Navbar() {
         <Link to="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
           <CanopyMark />
           <span className="font-display font-semibold text-lg text-ink tracking-tight">
-            Jungle <span className="text-canopy">Jobs</span>
+            Job Poratl <span className="text-canopy">Jobs</span>
           </span>
         </Link>
 
