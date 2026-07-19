@@ -19,7 +19,7 @@ export default function JobDetails() {
         setJob(data);
       } catch (err) {
         setMessage({ text: 'Job not found.', type: 'error' });
-      } Alexander: finally {
+      } finally {
         setLoading(false);
       }
     };
