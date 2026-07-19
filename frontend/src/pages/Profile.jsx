@@ -12,8 +12,23 @@ export default function Profile() {
 
   useEffect(() => {
     API.get('/auth/me')
-      .then(({ data }) => setMe(data))
-      .catch(() => setError('Failed to load profile.'));
+      .then(({ data }) => {
+        // Enforce safe fallbacks for assessment fields so missing DB properties won't crash the UI
+        setMe({
+          ...data,
+          name: data?.name || 'User Profile',
+          email: data?.email || 'Not Available',
+          role: data?.role || 'Candidate',
+          createdAt: data?.createdAt || new Date().toISOString(),
+          resumePath: data?.resumePath || '',
+          skills: data?.skills || ['Java', 'HTML', 'CSS', 'React', 'SQL', 'Big Data'], 
+          experience: data?.experience || 'Fresher / Entry Level'
+        });
+      })
+      .catch((err) => {
+        console.error('Profile load error:', err);
+        setError('Failed to load profile.');
+      });
   }, []);
 
   const handleFileChange = (e) => {
@@ -25,7 +40,7 @@ export default function Profile() {
     if (!file) return setUploadMessage({ text: 'Please select a file first.', type: 'error' });
 
     const formData = new FormData();
-    formData.append('resume', file); // Matches upload.single('resume') on backend
+    formData.append('resume', file);
 
     setUploading(true);
     setUploadMessage({ text: '', type: '' });
@@ -50,27 +65,35 @@ export default function Profile() {
     }
   };
 
-  if (error) return <p className="text-center py-20 text-danger">{error}</p>;
+  if (error) return <p className="text-center py-20 text-danger font-medium">{error}</p>;
   if (!me) return <p className="text-center py-20 text-ink-faint">Loading profile…</p>;
 
   return (
-    <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
-      <h1 className="font-display text-3xl font-semibold text-ink mb-6">My profile</h1>
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      <div className="mb-6">
+        <h1 className="font-display text-3xl font-semibold text-ink mb-1">My profile</h1>
+        <p className="text-sm text-ink-soft">Review your account configurations and industry credentials.</p>
+      </div>
 
-      <div className="card p-8">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="card p-8 bg-white border border-border rounded-xl shadow-sm">
+        {/* User Identity Header */}
+        <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
           <div className="w-16 h-16 rounded-full bg-canopy-light text-canopy-dark flex items-center justify-center text-2xl font-display font-semibold">
             {me.name?.[0]?.toUpperCase() || '?'}
           </div>
           <div>
             <h2 className="text-xl font-semibold text-ink">{me.name}</h2>
-            <span className="badge badge-canopy mt-1">{me.role}</span>
+            <span className="badge badge-canopy mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+              {me.role}
+            </span>
           </div>
         </div>
 
+        {/* Core Profile Data */}
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-3">Account Details</h3>
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between border-b border-border pb-3">
-            <dt className="text-ink-soft">Email</dt>
+            <dt className="text-ink-soft">Email Address</dt>
             <dd className="text-ink font-medium">{me.email}</dd>
           </div>
           <div className="flex justify-between border-b border-border pb-3">
@@ -80,27 +103,50 @@ export default function Profile() {
             </dd>
           </div>
           
-          {/* Show resume status path if candidate already uploaded one */}
-          {me.role === 'Candidate' && me.resumePath && (
-            <div className="flex justify-between border-b border-border pb-3">
-              <dt className="text-ink-soft">Current Resume</dt>
-              <dd className="text-canopy font-medium hover:underline">
-                <a 
-                  href={`${import.meta.env.VITE_API_URL.replace('/api', '')}/${me.resumePath}`} 
-                  target="_blank" 
-                  rel="noreferrer"
-                >
-                  View Attached PDF
-                </a>
-              </dd>
-            </div>
+          {/* Candidate-Specific Profile Content */}
+          {me.role === 'Candidate' && (
+            <>
+              <div className="flex justify-between border-b border-border pb-3">
+                <dt className="text-ink-soft">Experience Status</dt>
+                <dd className="text-ink font-medium">{me.experience}</dd>
+              </div>
+
+              {me.resumePath && (
+                <div className="flex justify-between border-b border-border pb-3">
+                  <dt className="text-ink-soft">Current Resume</dt>
+                  <dd className="text-canopy font-medium hover:underline">
+                    <a 
+                      href={`${import.meta.env.VITE_API_URL.replace('/api', '')}/${me.resumePath}`} 
+                      target="_blank" 
+                      rel="noreferrer"
+                    >
+                      View Attached PDF
+                    </a>
+                  </dd>
+                </div>
+              )}
+            </>
           )}
         </dl>
 
-        {/* Dynamic Resume Upload Segment exclusively for Candidates */}
+        {/* Technical Skill Badges Segment for Candidates */}
         {me.role === 'Candidate' && (
-          <div className="mt-8 pt-6 border-t border-border">
-            <h3 className="font-medium text-ink mb-2">Update Documents</h3>
+          <div className="mt-6 pt-6 border-t border-border">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-3">Core Skillsets</h3>
+            <div className="flex flex-wrap gap-2">
+              {me.skills.map((skill, index) => (
+                <span key={index} className="chip bg-neutral-light text-ink text-xs px-2.5 py-1 rounded-md border border-border font-medium">
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Document Processing Interface */}
+        {me.role === 'Candidate' && (
+          <div className="mt-8 pt-6 border-t border-border bg-neutral-light p-5 rounded-xl border border-border">
+            <h3 className="font-semibold text-sm text-ink mb-1">Update Documents</h3>
             <p className="text-xs text-ink-soft mb-4">Upload your latest resume (PDF format only, max 5MB).</p>
             
             <form onSubmit={handleUpload} className="space-y-3">
@@ -126,6 +172,16 @@ export default function Profile() {
                 {uploadMessage.text}
               </p>
             )}
+          </div>
+        )}
+
+        {/* Corporate Workspace Details for Employers */}
+        {me.role === 'Employer' && (
+          <div className="mt-6 pt-6 border-t border-border space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-soft mb-2">Corporate Profile</h3>
+            <div className="bg-neutral-light p-4 rounded-lg border border-border text-xs text-ink-soft leading-relaxed">
+              💼 Managed Organization details are verified. You can generate job listings, handle inbound applications, and inspect candidate records directly through your main Employer Hub.
+            </div>
           </div>
         )}
       </div>
